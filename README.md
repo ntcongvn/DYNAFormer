@@ -18,7 +18,7 @@ Dependent libraries
 * fvcore
 * iopath
 
-Install detectron2 and PISeg.
+Install detectron2 and DYNAFormer
 
 ```bask
 # Under your working directory
@@ -27,11 +27,11 @@ cd ./detectron2
 !python setup.py build develop
 cd ..
 
-#Install requirements for piseg
-cd ./piseg
+#Install requirements for DYNAFormer
+cd ./dynaformer
 !pip install -r requirements.txt
 cd ..
 
-cd ./piseg/piseg/modeling/pixel_decoder/ops
+cd ./dynaformer/dynaformer/modeling/pixel_decoder/ops
 !sh make.sh
 ```

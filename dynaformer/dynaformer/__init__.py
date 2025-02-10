@@ -19,6 +19,10 @@ from .data.dataset_mappers.mask_former_semantic_dataset_mapper import (
     MaskFormerSemanticDatasetMapper,
 )
 
+from .data.dataset_mappers.polyp_ins_semantic_dataset_mapper import (
+    PolypInsSemanticDatasetMapper,
+)
+
 # models
 from .dynaformer import DYNAFormer
 # from .data.datasets_detr import coco
@@ -26,5 +30,6 @@ from .test_time_augmentation import SemanticSegmentorWithTTA
 
 # evaluation
 from .evaluation.instance_evaluation import InstanceSegEvaluator
+from .evaluation.semantic_evaluation import PolypDBSemSegEvaluator
 # util
 from .utils import box_ops, misc, utils

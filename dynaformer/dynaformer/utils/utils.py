@@ -103,6 +103,10 @@ def sineembed_for_position_xy(pos_tensor,dim=256):
     return pos
 
 def apply_random_mask_noise_transforms(masks, bboxes,noise_scale,new_size):
+    dn_config={
+
+      
+    }
     device=masks.device
     noise_scale = torch.tensor(noise_scale).to(device)
     N, H, W = masks.shape

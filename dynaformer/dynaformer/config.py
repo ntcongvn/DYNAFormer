@@ -102,6 +102,7 @@ def add_dynaformer_config(cfg):
     cfg.MODEL.DYNAFormer.TEST.SEM_SEG_POSTPROCESSING_BEFORE_INFERENCE = False
     cfg.MODEL.DYNAFormer.TEST.PANO_TRANSFORM_EVAL = True
     cfg.MODEL.DYNAFormer.TEST.PANO_TEMPERATURE = 0.06
+    cfg.MODEL.DYNAFormer.TEST.VISUALIZE = False
     # cfg.MODEL.DYNAFormer.TEST.EVAL_FLAG = 1
 
     # Sometimes `backbone.size_divisibility` is set to 0 for some backbone (e.g. ResNet)

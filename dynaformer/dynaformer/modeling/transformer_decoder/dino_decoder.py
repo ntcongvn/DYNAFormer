@@ -36,9 +36,11 @@ class TransformerDecoder(nn.Module):
                 dec_layer_share=False,
                 dec_layer_dropout_prob=None,
                 type_mask_embed="MaskSimpleCNN",
+                binary_semantic_segmenation=False,
                 mask_embed_spatial_shape_level=None
                 ):
         super().__init__()
+        self.binary_semantic_segmenation=binary_semantic_segmenation
         if num_layers > 0:
             self.layers = _get_clones(decoder_layer, num_layers, layer_share=dec_layer_share)
         else:
@@ -165,7 +167,11 @@ class TransformerDecoder(nn.Module):
             else:
               raise NotImplementedError(f'This method is not implemented yet:{self.type_mask_embed}')
             
-            query_centermask_embed = sineembed_for_position_xy(reference_bboxs.sigmoid()[:,:,:2])
+            if self.binary_semantic_segmenation == True:
+              query_centermask_embed = sineembed_for_position_xy(get_bounding_boxes(reference_masks>0)[:,:,:2])
+            else:
+              query_centermask_embed = sineembed_for_position_xy(reference_bboxs.sigmoid()[:,:,:2])
+            
             query_sine_embed=torch.cat((query_mask_embed, query_centermask_embed), dim=-1)
             raw_query_mask = self.ref_mask_head(query_sine_embed)  # nq, bs, 256
             pos_scale = self.query_scale(output) if self.query_scale is not None else 1

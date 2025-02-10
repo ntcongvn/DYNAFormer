@@ -121,7 +121,7 @@ class DYNAFormerDecoder(nn.Module):
             self.query_feat = nn.Embedding(num_queries, hidden_dim)
         if not two_stage and initialize_box_type == 'no':
             self.query_box_embed = nn.Embedding(num_queries, 4)                 
-            self.query_mask_embed = nn.Embedding(num_queries, 224,224)          #Mask in layer scale 1/4
+            #self.query_mask_embed = nn.Embedding(num_queries, 224,224)          #Mask in layer scale 1/4
         if two_stage:
             self.enc_output = nn.Linear(hidden_dim, hidden_dim)
             self.enc_output_norm = nn.LayerNorm(hidden_dim)
@@ -141,6 +141,8 @@ class DYNAFormerDecoder(nn.Module):
         if self.mask_classification:
             if self.semantic_ce_loss:
                 self.class_embed = nn.Linear(hidden_dim, num_classes+1)
+                if num_classes==1:
+                  self.binary_semantic_segmenation=True
             else:
                 self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.label_enc=nn.Embedding(num_classes,hidden_dim)
@@ -155,7 +157,8 @@ class DYNAFormerDecoder(nn.Module):
                                           d_model=hidden_dim, query_dim=query_dim,
                                           num_feature_levels=self.num_feature_levels,
                                           dec_layer_share=dec_layer_share,
-                                          type_mask_embed=type_mask_embed
+                                          type_mask_embed=type_mask_embed,
+                                          binary_semantic_segmenation=self.binary_semantic_segmenation if self.binary_semantic_segmenation is not None else False
                                           )
 
         self.hidden_dim = hidden_dim
@@ -279,7 +282,6 @@ class DYNAFormerDecoder(nn.Module):
                 known_labels_expaned.scatter_(0, chosen_indice, new_label)
                 #Mask
                 known_masks_expand=apply_random_mask_noise_transforms(known_masks_expand, known_boxes, noise_scale,new_size)
-                #known_masks_expand=(known_masks_expand>0).to(dtype=torch.uint8)
                 #Box
                 known_boxes_expaned=get_bounding_boxes_ohw(known_masks_expand>0) 
 
@@ -434,7 +436,12 @@ class DYNAFormerDecoder(nn.Module):
             enc_outputs_coord_unselected = self.intern_box_embed(output_memory) + output_proposals  # (bs, \sum{hw}, 4) unsigmoid
 
             topk = self.num_queries
-            topk_proposals = torch.topk(enc_outputs_class_unselected.max(-1)[0], topk, dim=1)[1]
+
+            if self.binary_semantic_segmenation is not None and self.binary_semantic_segmenation== True:
+              topk_proposals = torch.topk(enc_outputs_class_unselected[...,0], topk, dim=1)[1]
+            else:  
+              #instance segm
+              topk_proposals = torch.topk(enc_outputs_class_unselected.max(-1)[0], topk, dim=1)[1]
 
             #Memory
             #N*HW*256
@@ -485,8 +492,9 @@ class DYNAFormerDecoder(nn.Module):
         elif not self.two_stage:
             tgt = self.query_feat.weight[None].repeat(bs, 1, 1)
             refbbox_embed = self.query_box_embed.weight[None].repeat(bs, 1, 1)
-            refmask_embed = self.query_mask_embed.weight[None].repeat(bs, 1, 1, 1)
-            
+            refmask_embed=self.decoder_norm(tgt.transpose(0, 1)).transpose(0, 1)
+            refmask_embed=torch.einsum("bqc,bchw->bqhw", refmask_embed, mask_features)
+            #refmask_embed = self.query_mask_embed.weight[None].repeat(bs, 1, 1).view(bs,-1, 224, 224)
         
         tgt_mask = None
         mask_dict = None

@@ -5,7 +5,7 @@
 # Modified from MaskDINO https://github.com/IDEA-Research/MaskDINO by Tan-Cong Nguyen
 # ------------------------------------------------------------------------
 """
-DynAMFormer Training Script based on and MaskDINO, Mask2Former.
+DYNAFormer Training Script based on and MaskDINO, Mask2Former.
 """
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -52,7 +52,9 @@ from dynaformer import (
     COCOInstanceNewBaselineDatasetMapper,
     COCOPanopticNewBaselineDatasetMapper,
     InstanceSegEvaluator,
+    PolypDBSemSegEvaluator,
     MaskFormerSemanticDatasetMapper,
+    PolypInsSemanticDatasetMapper,
     SemanticSegmentorWithTTA,
     add_dynaformer_config,
     DetrDatasetMapper,
@@ -149,7 +151,16 @@ class Trainer(DefaultTrainer):
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
         evaluator_list = []
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
-        # semantic segmentation
+        # semantic segmentation  - Polyp Semantic Segmentation
+        if evaluator_type== "polyp_sem_seg":
+          evaluator_list.append(PolypDBSemSegEvaluator(
+                    dataset_name,
+                    distributed=True,
+                    output_dir=output_folder,
+                    visualize=cfg.MODEL.DYNAFormer.TEST.VISUALIZE,
+                    visualize_path=output_folder+"/visualize",
+                )
+          )
         if evaluator_type in ["sem_seg", "ade20k_panoptic_seg"]:
             evaluator_list.append(
                 SemSegEvaluator(
@@ -158,7 +169,7 @@ class Trainer(DefaultTrainer):
                     output_dir=output_folder,
                 )
             )
-        # instance segmentation
+        # instance segmentation  - Polyp Instance Segmentation
         if evaluator_type == "coco":
             evaluator_list.append(COCOEvaluator(dataset_name, output_dir=output_folder))
         # panoptic segmentation
@@ -220,7 +231,7 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        # coco instance segmentation lsj new baseline
+        # coco instance segmentation lsj new baseline - Polyp instance segmentation
         if cfg.INPUT.DATASET_MAPPER_NAME == "coco_instance_lsj":
             mapper = COCOInstanceNewBaselineDatasetMapper(cfg, True)
             return build_detection_train_loader(cfg, mapper=mapper)
@@ -235,6 +246,10 @@ class Trainer(DefaultTrainer):
         # Semantic segmentation dataset mapper
         elif cfg.INPUT.DATASET_MAPPER_NAME == "mask_former_semantic":
             mapper = MaskFormerSemanticDatasetMapper(cfg, True)
+            return build_detection_train_loader(cfg, mapper=mapper)
+        # Polyp semantic segmentation dataset mapper
+        elif cfg.INPUT.DATASET_MAPPER_NAME == "polyp_ins_semantic":
+            mapper = PolypInsSemanticDatasetMapper(cfg, True)
             return build_detection_train_loader(cfg, mapper=mapper)
         else:
             mapper = None
@@ -407,7 +422,7 @@ def setup(args):
     cfg.merge_from_list(args.opts)
     cfg.freeze()
     default_setup(cfg, args)
-    setup_logger(output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="maskdino")
+    setup_logger(output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="dynaformer")
     return cfg
 
 
